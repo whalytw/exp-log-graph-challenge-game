@@ -29,7 +29,7 @@ function fixture(){
 test('three independent sessions, one baseline card, countdown synchronization and reset',()=>{
  const {G,E,clock}=fixture(),[a,b,c]=G.lanes;
  for(const [i,l] of G.lanes.entries())G.start(l,String(i+1));
- a.index=1;G.newQuestion(a);b.index=1;G.newQuestion(b);const untouched=JSON.stringify([b.q,c.q,b.index,c.index,b.deadline,c.deadline]);
+ a.index=a.plan.indexOf(2);G.newQuestion(a);b.index=b.plan.indexOf(2);G.newQuestion(b);const untouched=JSON.stringify([b.q,c.q,b.index,c.index,b.deadline,c.deadline]);
  G.useBaseline(a);assert.equal(a.baselineUsed,false);
  clock(a.questionStarted+15000);G.updateHelpButton(a);
  assert.equal(a.el.querySelector('[data-action=help]').disabled,false);assert.equal(a.el.querySelector('[data-action=baseline]').disabled,false);
@@ -37,7 +37,7 @@ test('three independent sessions, one baseline card, countdown synchronization a
  G.useBaseline(a);assert.equal(a.help.length,0);assert.equal(b.baselineUsed,false);
  G.useHelp(a);assert.equal(a.help.length,1);assert.equal(b.help.length,0);assert.equal(a.baselineUsed,true);
  a.strokes=E.targetPaths(a.q);G.submit(a);assert.equal(a.result.score,64);assert.equal(JSON.stringify([b.q,c.q,b.index,c.index,b.deadline,c.deadline]),untouched);
- clock(a.feedbackDeadline+1);G.updateClock(a);assert.equal(a.index,2);assert.equal(a.baselineUsed,false);assert.equal(a.help.length,0);
+ clock(a.feedbackDeadline+1);G.updateClock(a);assert.equal(a.index,3);assert.equal(a.baselineUsed,false);assert.equal(a.help.length,0);
  assert.equal(c.el.querySelector('[data-action=baseline]').hidden,true);
 });
 test('secondary pointers can draw and activate another lane without mixing strokes',()=>{
@@ -64,4 +64,12 @@ test('teacher settings contain only five levels; active configurations are retai
  doc.querySelector('#settingsBtn').onclick();const form=doc.querySelector('#settingsForm');assert.equal(doc.querySelectorAll('.level-card').length,5);assert.equal(form.querySelectorAll('[value="sin"]').length,0);
  form.elements.seconds0.value='100';form.onsubmit({target:form,preventDefault(){}});assert.equal(G.settings.levels[0].seconds,100);assert.equal(a.config.levels[0].seconds,activeSeconds);
  G.start(G.lanes[1],'');assert.equal(G.lanes[1].config.levels[0].seconds,100);
+});
+test('teacher base checkboxes are sorted, validate selection and apply to the next student',()=>{
+ const {G,doc}=fixture(),a=G.lanes[0];G.start(a,'');doc.querySelector('#settingsBtn').onclick();const form=doc.querySelector('#settingsForm'),choices=form.querySelectorAll('[name="bases"]');
+ assert.deepEqual(choices.map(b=>Number(b.value)),[.1,.2,1/3,.5,2,3,5,10]);assert.deepEqual(choices.filter(b=>b.checked).map(b=>Number(b.value)),[1/3,.5,2,3]);
+ choices.forEach(b=>b.checked=false);form.onsubmit({target:form,preventDefault(){}});assert.ok(doc.querySelector('#settingsError').textContent.length>0);
+ choices.forEach(b=>b.checked=[.1,10].includes(Number(b.value)));form.onsubmit({target:form,preventDefault(){}});assert.equal(JSON.stringify(G.settings.bases),'[0.1,10]');assert.equal(JSON.stringify(a.config.bases),'[0.3333333333333333,0.5,2,3]');
+ G.start(G.lanes[1],'');assert.ok([.1,10].includes(G.lanes[1].q.base));
+ doc.querySelector('#settingsBtn').onclick();doc.querySelector('#defaultsBtn').onclick();assert.deepEqual(form.querySelectorAll('[name="bases"]:checked').map(b=>Number(b.value)),[1/3,.5,2,3]);assert.deepEqual(Array.from({length:5},(_,i)=>Number(form.elements['count'+i].value)),[2,1,1,0,0]);
 });

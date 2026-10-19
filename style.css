@@ -33,3 +33,6 @@ body[data-theme=dark] .rescuebar .help-card{background:#41293b;color:#ffc1d0;bor
 @media(min-width:601px) and (max-height:800px){.rescuebar{padding:0 10px 6px}.rescuebar button{min-height:40px;padding:6px 4px}.question{min-height:88px}.ink-state{font-size:12px}}
 @media(max-width:900px){.rescuebar{padding:0 6px 7px;gap:5px}.overlay h2{font-size:20px}.mini-stars{letter-spacing:3px}.summary-scores strong{font-size:19px}}
 @media(max-width:600px){.brand h1{font-size:20px}.rescuebar button{font-size:16px}.plot-hint{font-size:12px}}
+
+/* v1.1: fraction bases and teacher-selectable base choices. */
+.formula .log-base{display:inline-flex;vertical-align:-.5em;line-height:1;font-size:.62em}.formula .log-base .frac{font-size:1em;margin:0 2px}.base-settings{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}.base-settings h3{font-size:17px;margin:0 0 10px}.base-settings .checks label{padding:6px 10px;border:1px solid var(--line);border-radius:8px;min-height:44px;min-width:80px;background:var(--surface);font-variant-numeric:tabular-nums}.base-settings .settings-note{margin-bottom:0}
