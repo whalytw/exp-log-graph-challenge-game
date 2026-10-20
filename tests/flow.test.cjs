@@ -73,3 +73,13 @@ test('teacher base checkboxes are sorted, validate selection and apply to the ne
  G.start(G.lanes[1],'');assert.ok([.1,10].includes(G.lanes[1].q.base));
  doc.querySelector('#settingsBtn').onclick();doc.querySelector('#defaultsBtn').onclick();assert.deepEqual(form.querySelectorAll('[name="bases"]:checked').map(b=>Number(b.value)),[1/3,.5,2,3]);assert.deepEqual(Array.from({length:5},(_,i)=>Number(form.elements['count'+i].value)),[2,1,1,0,0]);
 });
+test('one shared function selector applies to every star, validates empty choices and restores defaults',()=>{
+ const {G,doc}=fixture(),[a,b,c]=G.lanes;G.start(a,'');doc.querySelector('#settingsBtn').onclick();const form=doc.querySelector('#settingsForm'),choices=form.querySelectorAll('[name="types"]');
+ assert.equal(choices.length,2);assert.deepEqual(choices.map(b=>b.value),['exp','log']);assert.ok(choices.every(b=>b.checked));for(const card of doc.querySelectorAll('.level-card'))assert.equal(card.querySelectorAll('input').filter(b=>/^type/.test(b.attrs.name)).length,0);
+ choices.forEach(b=>b.checked=false);form.onsubmit({target:form,preventDefault(){}});assert.ok(doc.querySelector('#settingsError').textContent.includes('出題函數'));
+ choices[0].checked=true;form.onsubmit({target:form,preventDefault(){}});assert.equal(JSON.stringify(G.settings.types),'["exp"]');assert.equal(JSON.stringify(a.config.types),'["exp","log"]');
+ G.start(b,'');b.plan=[1,2,3,4,5];for(let i=0;i<5;i++){b.index=i;G.newQuestion(b);assert.equal(b.q.type,'exp');}
+ doc.querySelector('#settingsBtn').onclick();const nextChoices=form.querySelectorAll('[name="types"]');nextChoices.forEach(b=>b.checked=b.value==='log');form.onsubmit({target:form,preventDefault(){}});assert.equal(JSON.stringify(b.config.types),'["exp"]');
+ G.start(c,'');c.plan=[1,2,3,4,5];for(let i=0;i<5;i++){c.index=i;G.newQuestion(c);assert.equal(c.q.type,'log');}
+ doc.querySelector('#settingsBtn').onclick();doc.querySelector('#defaultsBtn').onclick();assert.deepEqual(form.querySelectorAll('[name="types"]:checked').map(b=>b.value),['exp','log']);
+});

@@ -2,14 +2,20 @@
 'use strict';
 const XMIN=-6,XMAX=10,YMAX=12,HELP_COUNT=XMAX-XMIN;
 const baseOptions=[1/10,1/5,1/3,1/2,2,3,5,10],defaultBases=[1/3,1/2,2,3];
+const defaultTypes=['exp','log'];
 const transforms=['horizontalShift','horizontalScale','verticalScale','verticalShift'];
 const timeDefaults=[40,60,80,100,120],countDefaults=[2,1,1,0,0];
-const defaults={version:2,bases:[...defaultBases],theme:'dark',gridColor:'#2a3b54',gridWidth:1.5,axisFontSize:16,axisLabelColor:'#a8b9cf',helpCards:3,helpFirstDelay:15,helpInterval:10,seatMin:1,seatMax:30,levels:Array.from({length:5},(_,i)=>({count:countDefaults[i],seconds:timeDefaults[i],types:['exp','log'],transforms:[...transforms]}))};
+const defaults={version:3,types:[...defaultTypes],bases:[...defaultBases],theme:'dark',gridColor:'#2a3b54',gridWidth:1.5,axisFontSize:16,axisLabelColor:'#a8b9cf',helpCards:3,helpFirstDelay:15,helpInterval:10,seatMin:1,seatMax:30,levels:Array.from({length:5},(_,i)=>({count:countDefaults[i],seconds:timeDefaults[i],transforms:[...transforms]}))};
 const clone=x=>JSON.parse(JSON.stringify(x));
 function normalizeSettings(saved){
  const s={...clone(defaults),...saved,levels:defaults.levels.map((l,i)=>({...clone(l),...saved?.levels?.[i]}))};
- if(saved?.version!==2){if(saved?.levels?.every((l,i)=>l.count===[1,1,1,0,1][i]))s.levels.forEach((l,i)=>l.count=countDefaults[i]);s.bases=[...defaultBases];}
- s.version=2;return s;
+ if((saved?.version??1)<2){if(saved?.levels?.every((l,i)=>l.count===[1,1,1,0,1][i]))s.levels.forEach((l,i)=>l.count=countDefaults[i]);s.bases=[...defaultBases];}
+ if(!Array.isArray(saved?.types)){
+  const active=saved?.levels?.filter(l=>l.count>0)||[],legacy=(active.length?active:saved?.levels||[]).flatMap(l=>l.types||[]),types=defaultTypes.filter(t=>legacy.includes(t));
+  s.types=types.length?types:[...defaultTypes];
+ }
+ s.levels.forEach(l=>delete l.types);
+ s.version=3;return s;
 }
 function graphRange(){return {min:-6,max:12,step:1};}
 function frac(a,b){return '<span class="frac"><span>'+a+'</span><span>'+b+'</span></span>';}
@@ -26,21 +32,22 @@ function evaluate(q,x){const u=q.b*(x-q.h);return q.type==='exp'?q.a*Math.pow(q.
 function baseQuestion(q){return {...q,a:1,b:1,h:0,d:0,star:1};}
 function hasTransform(q){return !!q&&(q.a!==1||q.b!==1||q.h!==0||q.d!==0);}
 function combinations(a,n){if(n===0)return [[]];return a.flatMap((v,i)=>combinations(a.slice(i+1),n-1).map(c=>[v,...c]));}
-function questionPool(star,level,bases=defaultBases){return level.types.flatMap(type=>bases.flatMap(base=>combinations(level.transforms,star-1).flatMap(chosen=>{
+function questionPool(star,level,bases=defaultBases,types=defaultTypes){return types.flatMap(type=>bases.flatMap(base=>combinations(level.transforms,star-1).flatMap(chosen=>{
  let list=[{type,base,a:1,b:1,h:0,d:0,star}];
  for(const key of chosen){const vals=key==='horizontalShift'?[-2,-1,1,2]:key==='horizontalScale'?[.5,2]:key==='verticalScale'?[.5,2,3]:[-2,-1,1,2],field={horizontalShift:'h',horizontalScale:'b',verticalScale:'a',verticalShift:'d'}[key];list=list.flatMap(q=>vals.map(v=>({...q,[field]:v})));}return list;
 })));}
 function signature(q){return [q.type,q.base,q.a,q.b,q.h,q.d].join('|');}
-function selectQuestion(star,level,avoid=[],rng=Math.random,bases=defaultBases){const pool=questionPool(star,level,bases),filtered=pool.filter(q=>!avoid.includes(signature(q))),choices=filtered.length?filtered:pool;if(!choices.length)throw Error('沒有可用題目');return {...choices[Math.min(choices.length-1,Math.floor(rng()*choices.length))]};}
+function selectQuestion(star,level,avoid=[],rng=Math.random,bases=defaultBases,types=defaultTypes){const pool=questionPool(star,level,bases,types),filtered=pool.filter(q=>!avoid.includes(signature(q))),choices=filtered.length?filtered:pool;if(!choices.length)throw Error('沒有可用題目');return {...choices[Math.min(choices.length-1,Math.floor(rng()*choices.length))]};}
 function validate(s){
  const errors=[];
+ if(!Array.isArray(s.types)||!s.types.length||s.types.some(t=>!defaultTypes.includes(t))||new Set(s.types).size!==s.types.length)errors.push('出題函數請至少勾選指數函數或對數函數其中一種。');
  if(!Array.isArray(s.bases)||!s.bases.length||s.bases.some(b=>!baseOptions.includes(b))||new Set(s.bases).size!==s.bases.length)errors.push('出題底數請至少勾選一種，並使用提供的底數選項。');
  for(const [key,lo,hi,label] of [['helpCards',0,3,'每題求救卡'],['helpFirstDelay',0,300,'首張求救卡等待'],['helpInterval',1,300,'後續求救卡間隔'],['axisFontSize',10,28,'座標文字大小']])if(!Number.isInteger(s[key])||s[key]<lo||s[key]>hi)errors.push(label+'需為 '+lo+'～'+hi+' 的整數。');
  if(!/^#[0-9a-f]{6}$/i.test(s.axisLabelColor)||!/^#[0-9a-f]{6}$/i.test(s.gridColor))errors.push('請選擇有效顏色。');
  if(!Number.isInteger(s.seatMin)||!Number.isInteger(s.seatMax)||s.seatMin<1||s.seatMax>99||s.seatMax<s.seatMin)errors.push('座號範圍需介於 1～99，終點不可小於起點。');
  if(!Array.isArray(s.levels)||s.levels.length!==5)return errors.concat('需要五個星等設定。');
  let total=0;
- s.levels.forEach((l,i)=>{if(!Number.isInteger(l.count)||l.count<0||l.count>20)errors.push((i+1)+' 星題數需為 0～20。');if(!Number.isInteger(l.seconds)||l.seconds<10||l.seconds>300||l.seconds%10!==0)errors.push((i+1)+' 星限時需為 10～300 秒，且是 10 的倍數。');total+=l.count;if(l.count>0){if(!l.types.length||l.types.some(t=>!['exp','log'].includes(t)))errors.push((i+1)+' 星請至少選一種函數。');if(l.transforms.some(t=>!transforms.includes(t))||new Set(l.transforms).size<i)errors.push((i+1)+' 星需要至少勾選 '+i+' 種變化，或將題數設為 0。');}});
+ s.levels.forEach((l,i)=>{if(!Number.isInteger(l.count)||l.count<0||l.count>20)errors.push((i+1)+' 星題數需為 0～20。');if(!Number.isInteger(l.seconds)||l.seconds<10||l.seconds>300||l.seconds%10!==0)errors.push((i+1)+' 星限時需為 10～300 秒，且是 10 的倍數。');total+=l.count;if(l.count>0){if(l.transforms.some(t=>!transforms.includes(t))||new Set(l.transforms).size<i)errors.push((i+1)+' 星需要至少勾選 '+i+' 種變化，或將題數設為 0。');}});
  if(total===0)errors.push('至少需設定一題。');return errors;
 }
 function buildPlan(s){return s.levels.flatMap((l,i)=>Array.from({length:l.count},()=>i+1));}

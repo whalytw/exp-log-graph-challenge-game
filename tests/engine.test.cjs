@@ -53,3 +53,15 @@ test('new defaults, migration and selection honor teacher choices',()=>{
 test('rescue timing and independent usage limits are preserved',()=>{
  assert.equal(E.helpState(E.defaults,14.99).available,0);assert.equal(E.helpState(E.defaults,15).available,1);assert.equal(E.helpState(E.defaults,35,1).available,2);assert.equal(E.helpState(E.defaults,100,3).available,0);
 });
+test('shared function choices govern all five stars and migrate legacy settings',()=>{
+ assert.deepEqual(E.defaults.types,['exp','log']);
+ for(const type of ['exp','log'])for(let star=1;star<=5;star++){
+  const pool=E.questionPool(star,E.defaults.levels[star-1],E.defaults.bases,[type]);assert.ok(pool.length);assert.ok(pool.every(q=>q.type===type));
+  assert.equal(E.selectQuestion(star,E.defaults.levels[star-1],[],()=>.99,E.defaults.bases,[type]).type,type);
+ }
+ const invalid=E.clone(E.defaults);invalid.types=[];assert.ok(E.validate(invalid).length);invalid.types=['sin'];assert.ok(E.validate(invalid).length);
+ const old=E.clone(E.defaults);old.version=2;delete old.types;old.bases=[.1,5];old.levels.forEach(l=>l.types=l.count>0?['log']:['exp']);old.levels[0].seconds=90;
+ const migrated=E.normalizeSettings(old);assert.deepEqual(migrated.types,['log']);assert.deepEqual(migrated.bases,[.1,5]);assert.equal(migrated.levels[0].seconds,90);assert.deepEqual(migrated.levels.map(l=>l.count),[2,1,1,0,0]);assert.ok(migrated.levels.every(l=>!('types'in l)));assert.deepEqual(E.validate(migrated),[]);
+ old.levels[0].types=['exp'];assert.deepEqual(E.normalizeSettings(old).types,['exp','log']);
+ const current=E.clone(E.defaults);current.types=['exp'];assert.deepEqual(E.normalizeSettings(current).types,['exp']);
+});
