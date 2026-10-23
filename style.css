@@ -36,3 +36,9 @@ body[data-theme=dark] .rescuebar .help-card{background:#41293b;color:#ffc1d0;bor
 
 /* v1.1: fraction bases and teacher-selectable base choices. */
 .formula .log-base{display:inline-flex;vertical-align:-.5em;line-height:1;font-size:.62em}.formula .log-base .frac{font-size:1em;margin:0 2px}.base-settings{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}.base-settings h3{font-size:17px;margin:0 0 10px}.base-settings .checks label{padding:6px 10px;border:1px solid var(--line);border-radius:8px;min-height:44px;min-width:80px;background:var(--surface);font-variant-numeric:tabular-nums}.base-settings .settings-note{margin-bottom:0}
+
+/* v1.3: reserve gestures inside the play area; settings dialogs still scroll. */
+.lanes,.lane{touch-action:none}.version-label{font:600 11px system-ui;color:var(--muted);margin-left:10px;letter-spacing:0;white-space:nowrap}.rescuebar button.pressed,.toolbar button.pressed{filter:brightness(1.15);box-shadow:inset 0 0 0 3px var(--accent)}
+@media(max-width:900px){.version-label{font-size:9px;margin-left:6px}}
+/* Keep classroom targets at least 44 CSS pixels, including 1280×720. */
+.toolbar button,.rescuebar button,.submit{min-height:44px}

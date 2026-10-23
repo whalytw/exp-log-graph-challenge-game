@@ -134,6 +134,7 @@ function createInkTracker(strokes=[],range={min:-6,max:6},allowVertical=false){
  function refresh(k){const next=mergeYs(bins[k],.18*unit).length>6;if(next!==over[k]){overCount+=next?1:-1;over[k]=next;}}
  function addSegment(a,b,initializing=false){
   total+=Math.hypot((b.x-a.x)/span*600,(b.y-a.y)/(range.max-range.min)*500);
+  if(allowVertical)return;
   const lo=Math.max(0,Math.ceil((Math.min(a.x,b.x)-XMIN)/span*n)),hi=Math.min(n,Math.floor((Math.max(a.x,b.x)-XMIN)/span*n));
   if(Math.abs(b.x-a.x)<.0001){
    const k=Math.round((a.x-XMIN)/span*n);
